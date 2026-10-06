@@ -42,8 +42,7 @@ function status(t){let f=taskFeedback(t.id);if(t.status==='pending'&&f?.outcome=
 function pending(){try{let p=JSON.parse(Plan.pending()||'{}');return (p.tasks?.length||p.updates?.length)?p:null}catch(e){return null}}
 function card(t,actions=false){let [st,color]=status(t),style=categoryStyles[categoryOf(t)];return '<div class="card task" style="--tone:'+color+'"><div class="tag">'+st+'</div><div class="time">'+E(t.date+' '+t.time)+' · '+t.minutes+'分钟</div><div class="title">'+E(t.title)+'</div>'+(actions?'<div class="task-actions"><button class="primary" onclick="executionMenu('+t.id+')">'+(t.status==='pending'?'记录执行':'查看 / 修改反馈')+'</button><button onclick="feedback('+t.id+')">调整安排</button><button class="task-delete" onclick="askDeleteTask('+t.id+')">删除</button>'+(t.status==='done'&&albumSupported()?'<button onclick="taskPhotoMenu('+t.id+')">补照片</button>':'')+'</div>':'')+'</div>'}
 function mark(id,s){Plan.mark(id,s)}function feedback(id){let t=tasks().find(t=>t.id===id);draft=`请调整任务“${t.title}”（ID ${id}）。我的执行情况：`;Plan.saveDraft(draft);go('plan')}
-let systemNav=[];let systemReturning=false;
-function go(t){if(!systemReturning&&t!==tab){systemNav.push({tab,planMode,progressMode});if(systemNav.length>30)systemNav.shift()}tab=t;if(t==='plan'){planMode='chat';showHistory=false}refresh();window.scrollTo(0,0)}
+function go(t){tab=t;if(t==='plan'){planMode='chat';showHistory=false}refresh();window.scrollTo(0,0)}
 
 const categoryStyles={
  '工作':{bg:'#fff0dc',fg:'#80531c',edge:'#dea347'},
@@ -55,7 +54,7 @@ function categoryOf(t){if(categoryStyles[t.category])return t.category;let name=
 function filterCategory(c){categoryFilter=c;refresh()}
 function eventDetail(id){let t=tasks().find(t=>t.id===id);if(!t)return;let end=new Date(new Date(t.date+'T'+t.time).getTime()+t.minutes*60000),clock=String(end.getHours()).padStart(2,'0')+':'+String(end.getMinutes()).padStart(2,'0');let div=document.createElement('div');div.className='detail-layer';div.id='event-detail';div.innerHTML='<div class="detail-box"><h3>'+E(t.title)+'</h3><p>'+E(t.date)+' '+E(t.time)+' — '+clock+'<br>计划 '+t.minutes+'分钟</p><p>'+E(categoryOf(t))+' · '+E(status(t)[0])+'</p><button class="primary" onclick="document.getElementById(\'event-detail\').remove();executionMenu('+t.id+')">记录执行 / 查看反馈</button><button onclick="document.getElementById(\'event-detail\').remove();feedback('+t.id+')">调整安排</button><button class="task-delete" onclick="document.getElementById(\'event-detail\').remove();askDeleteTask('+t.id+')">删除任务</button><button onclick="document.getElementById(\'event-detail\').remove()">关闭</button></div>';div.addEventListener('click',e=>{if(e.target===div)div.remove()});document.body.appendChild(div)}
 
-function changeProgress(mode){if(progressMode!==mode)systemNav.push({tab,planMode,progressMode});progressMode=mode;refresh();window.scrollTo(0,0)}
+function changeProgress(mode){progressMode=mode;refresh();window.scrollTo(0,0)}
 function personalSupported(){return typeof Plan.saveProfile==='function'&&typeof Plan.saveFeedback==='function'}
 function examProfile(){try{let p=JSON.parse(data.profile?.preferences||'{}');return p.kind==='exam-v1'?p:null}catch(e){return null}}
 function drillInfo(x){try{let v=JSON.parse(x.reason||'{}');return v.kind==='drill-v1'?v:null}catch(e){return null}}
@@ -196,7 +195,7 @@ function selectDailyDay(date){albumDay=albumDay===date?'':date;albumLimit=20;ref
 function filterDailyTag(tag){albumTag=tag;albumDay='';albumLimit=20;refresh()}
 function searchDaily(){albumQuery=document.getElementById('daily-search-input').value.trim().slice(0,100);albumView='journal';albumDay='';albumLimit=20;refresh()}
 
-function systemBack(){let overlay=document.getElementById('personal-dialog');if(overlay){closePersonal();return true}overlay=document.getElementById('event-detail');if(overlay){overlay.remove();return true}if(document.getElementById('daily-reader')){closeDailyReader();return true}if(albumEditor){leaveDaily();return true}if(tab==='daily'&&albumSearchOpen){albumSearchOpen=false;albumQuery='';refresh();return true}if(tab==='plan'&&planMode!=='chat'){setPlanMode('chat');return true}if(systemNav.length){let previous=systemNav.pop();tab=previous.tab;planMode=previous.planMode;progressMode=previous.progressMode;refresh();window.scrollTo(0,0);return true}if(tab!=='today'){tab='today';refresh();window.scrollTo(0,0);return true}return false}
+function systemBack(){let overlay=document.getElementById('personal-dialog');if(overlay){closePersonal();return true}overlay=document.getElementById('event-detail');if(overlay){overlay.remove();return true}if(document.getElementById('daily-reader')){closeDailyReader();return true}if(albumEditor){leaveDaily();return true}if(tab==='daily'&&albumSearchOpen){albumSearchOpen=false;albumQuery='';refresh();return true}if(tab==='plan'&&planMode!=='chat'){setPlanMode('chat');return true}return false}
 
 function persistDailyDraft(){if(typeof Plan.saveJournalDraft!=='function')return;try{let deferred=Object.fromEntries(Object.entries(albumDeferredDrafts).slice(-8));Plan.saveJournalDraft(JSON.stringify({editor:albumEditor||null,deferred,photoTaskContext}))}catch(e){}}
 function restoreDailyDraft(){if(typeof Plan.getJournalDraft!=='function')return;try{let saved=JSON.parse(Plan.getJournalDraft()||'{}');if(saved.deferred&&typeof saved.deferred==='object')albumDeferredDrafts=saved.deferred;if(saved.editor&&photoUrl(saved.editor.id)){albumEditor=saved.editor;albumEditing=true;tab='daily'}if(saved.photoTaskContext)photoTaskContext=saved.photoTaskContext}catch(e){}}
